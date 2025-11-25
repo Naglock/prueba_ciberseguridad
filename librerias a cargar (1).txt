@@ -1,0 +1,23 @@
+en  crear tabla:
+
+pip install  MySQL
+
+python.exe -m pip install --upgrade pip
+
+pip install mysql-connector-python
+
+
+
+Actividad:
+
+pip install  MySQL
+
+python.exe -m pip install --upgrade pip
+
+pip install mysql-connector-python
+
+pip install flask
+
+
+pip install pymysql
+
