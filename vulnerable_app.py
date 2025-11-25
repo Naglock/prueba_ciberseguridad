@@ -10,17 +10,17 @@ app = Flask(__name__)
 app.secret_key = os.urandom(24)
 
 
-def get_db_connection():
+###def get_db_connection():
 
-    db_config = {
-        'host': 'localhost',  # El servidor local de XAMPP
-        'user': 'root',       # El usuario de MySQL
-        'password': '',       # Tu contraseña (si no tienes una, déjala vacía)
-        'database': 'prueba' # El nombre de la base de datos
-    }
-    conn = mysql.connector.connect(**db_config)
-
-    return conn
+#    db_config = {
+#        'host': 'localhost',  # El servidor local de XAMPP
+ #       'user': 'root',       # El usuario de MySQL
+#        'password': '',       # Tu contraseña (si no tienes una, déjala vacía)
+#        'database': 'prueba' # El nombre de la base de datos
+#    }
+#    conn = mysql.connector.connect(**db_config)
+#
+ #   return conn
 
 
 def hash_password(password):
