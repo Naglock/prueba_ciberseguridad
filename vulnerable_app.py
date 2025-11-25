@@ -3,7 +3,7 @@ import sqlite3
 import os
 import hashlib
 # import mysql.connector
-import pymysql.cursors
+# import pymysql.cursors
 from hashlib import sha256
 
 app = Flask(__name__)
