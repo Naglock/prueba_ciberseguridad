@@ -1,10 +1,5 @@
 pipeline {
-    agent {
-        // Usar una imagen Docker con Python ya instalado para el agente
-        // Esto evita errores de 'apt install' y garantiza la consistencia del ambiente.
-        docker {
-            image 'python:3.12-slim'
-        }
+    agent any
     }
 
     environment {
