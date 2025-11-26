@@ -1,19 +1,22 @@
 pipeline {
     agent any
 
-    stages {
-        // --- 1. PREPARACIÓN Y CONSTRUCCIÓN ---
+    // --- 1. PREPARACIÓN Y CONSTRUCCIÓN ---
         stage('Setup & Build') {
             steps {
                 echo "Instalando dependencias y construyendo imagen..."
                 sh '''
-                    # Crear entorno virtual
+                    # 1. Instalar Python y herramientas necesarias
+                    apt update
+                    DEBIAN_FRONTEND=noninteractive apt install -y python3 python3-venv python3-pip
+
+                    # 2. Crear entorno virtual dentro del workspace
                     python3 -m venv venv
                     . venv/bin/activate
                     pip install --upgrade pip
                     pip install -r requirements.txt
                 '''
-                // Construir la imagen Docker de la aplicación para el despliegue
+                // 3. Construir la imagen Docker de la aplicación para el despliegue
                 sh "docker build -t ${APP_IMAGE} ."
             }
         }
