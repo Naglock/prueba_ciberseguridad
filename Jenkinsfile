@@ -2,7 +2,7 @@ pipeline {
     agent {
         // Usar una imagen Docker con Python ya instalado para el agente
         docker {
-            image 'python:3.9-slim'
+            image 'python:3.12-slim'
         }
     }
 
