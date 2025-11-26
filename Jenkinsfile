@@ -1,14 +1,5 @@
 pipeline {
     agent any
-    }
-
-    environment {
-        PROJECT_NAME = "pipeline-test"
-        SONARQUBE_URL = "http://sonarqube:9000"
-        TARGET_URL = "http://172.31.150.232:5000" // IP de la aplicación una vez desplegada (Verifica que esta IP de WSL siga activa)
-        APP_PORT = 5000
-        APP_IMAGE = "python-app:${env.BUILD_ID}"
-    }
 
     stages {
         // --- 1. PREPARACIÓN Y CONSTRUCCIÓN ---
