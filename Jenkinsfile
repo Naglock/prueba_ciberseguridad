@@ -107,15 +107,10 @@ pipeline {
         stage('OWASP ZAP Scan (DAST)') {
             steps {
                 echo "Ejecutando escaneo ZAP Baseline (Localmente) contra ${TARGET_URL}"
-                // Ejecutamos ZAP con corrección de puerto y reporte fusionado
-                sh """
-                    ./ZAP_CLI/zap.sh -cmd \\
-                        -port 8090 \\ // Evita conflicto con Jenkins (8080)
-                        -host 127.0.0.1 \\
-                        -target ${TARGET_URL} \\
-                        -quickscan \\
-                        -quickout security-reports/zap-report.html || true // Genera el reporte HTML directo
-                """
+                
+                // ⭐️ CORRECCIÓN: Usar una sola línea de comando sin saltos ⭐️
+                sh "./ZAP_CLI/zap.sh -cmd -port 8090 -host 127.0.0.1 -target ${TARGET_URL} -quickscan -quickout security-reports/zap-report.html || true"
+                
                 sh 'chmod -R 777 security-reports'
             }
         }
