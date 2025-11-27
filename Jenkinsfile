@@ -17,6 +17,15 @@ pipeline {
             steps {
                 echo "Instalando dependencias y construyendo imagen..."
                 sh '''
+                    # 1. Instalar Python y utilidades CRÍTICAS (wget y unzip)
+                    DEBIAN_FRONTEND=noninteractive apt install -y wget unzip
+
+                    # 2. Crear entorno virtual dentro del workspace
+                    python3 -m venv venv
+                    # ... (el resto de los comandos de venv y pip) ...
+                '''
+                echo "Instalando dependencias y construyendo imagen..."
+                sh '''
                     # 1. Instalar Python y herramientas necesarias
                     DEBIAN_FRONTEND=noninteractive apt install -y python3 python3-venv python3-pip
 
@@ -31,15 +40,20 @@ pipeline {
             }
         }
         stage('Install ZAP CLI') {
-        steps {
-            echo "Descargando e instalando ZAP CLI..."
-            sh '''
-                # ZAP CLI es un binario que podemos descargar directamente
-                # Usaremos la versión más reciente (ej. 2.15.0)
-                wget https://github.com/zaproxy/zaproxy/releases/download/v2.15.0/ZAP_CLI-2.15.0.zip -O zap_cli.zip
-                unzip zap_cli.zip
-                chmod +x ZAP_CLI/zap.sh
-            '''
+            steps {
+                echo "Descargando e instalando ZAP CLI..."
+                sh '''
+                    # Descarga
+                    wget https://github.com/zaproxy/zaproxy/releases/download/v2.15.0/ZAP_CLI-2.15.0.zip -O zap_cli.zip
+                    
+                    # Descomprime (ahora que unzip está instalado)
+                    unzip zap_cli.zip
+                    
+                    # Limpieza y Permisos
+                    rm zap_cli.zip
+                    chmod +x ZAP_CLI/zap.sh
+                '''
+            }
         }
     }
         
