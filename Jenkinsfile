@@ -41,7 +41,7 @@ pipeline {
                     
                     # 2. Descompresión y renombrado
                     tar -xzf zap_core.tar.gz
-                    mv ZAP_${ZAP_VERSION} ZAP_CLI // Renombra el directorio generado por tar
+                    mv ZAP_${ZAP_VERSION} ZAP_CLI # Renombra el directorio generado por tar <--- ¡CAMBIADO A '#' !
                     
                     # 3. Limpieza y Permisos
                     rm zap_core.tar.gz
