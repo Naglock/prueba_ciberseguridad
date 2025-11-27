@@ -1,22 +1,25 @@
 pipeline {
-    agent any // Usamos 'agent any' para evitar conflictos con Docker
+    agent any // Usamos 'agent any' para evitar conflictos con el agente Docker que fallaba
 
     environment {
         PROJECT_NAME = "pipeline-test"
         SONARQUBE_URL = "http://sonarqube:9000"
-        TARGET_URL = "http://172.31.150.232:5000" // IP de la aplicación desplegada
+        
+        // ⭐️ CORRECCIÓN CRÍTICA: Usamos el alias interno para la conectividad DAST ⭐️
+        TARGET_URL = "http://host.docker.internal:5000" 
         APP_PORT = 5000
         APP_IMAGE = "python-app:${env.BUILD_ID}"
         ZAP_VERSION = "2.15.0" // Versión de ZAP a descargar
     }
 
     stages { 
+
         // --- 1. PREPARACIÓN, INSTALACIÓN Y CONSTRUCCIÓN ---
         stage('Setup & Build') {
             steps {
                 echo "Instalando utilidades y construyendo imagen..."
                 sh '''
-                    # 1. Instalar herramientas críticas y Python
+                    # 1. Instalar herramientas críticas (wget, unzip, python)
                     DEBIAN_FRONTEND=noninteractive apt update && \
                     DEBIAN_FRONTEND=noninteractive apt install -y wget unzip python3 python3-venv python3-pip
 
@@ -31,25 +34,21 @@ pipeline {
             }
         }
         
-        // --- 2. INSTALAR ZAP CLI (Localmente) ---
+        // --- 2. INSTALAR ZAP CLI (Localmente - Solución al bloqueo de Docker Hub) ---
         stage('Install ZAP CLI') {
             steps {
                 echo "Descargando e instalando ZAP Core (v${ZAP_VERSION})..."
                 sh """
-                    # ⭐️ LIMPIEZA PREVENTIVA CRÍTICA ⭐️
-                    rm -rf ZAP_CLI || true
-                    rm -rf ZAP_${ZAP_VERSION} || true
-                    
                     # 1. Descargar el binario Linux/Unix de ZAP
                     wget https://github.com/zaproxy/zaproxy/releases/download/v${ZAP_VERSION}/ZAP_${ZAP_VERSION}_Linux.tar.gz -O zap_core.tar.gz
                     
-                    # 2. Descompresión
+                    # 2. Limpieza preventiva y descompresión
+                    rm -rf ZAP_CLI || true
+                    rm -rf ZAP_${ZAP_VERSION} || true
                     tar -xzf zap_core.tar.gz
                     
-                    # 3. Renombrado (Esto ahora funcionará porque ZAP_CLI no existe)
-                    mv ZAP_${ZAP_VERSION} ZAP_CLI
-                    
-                    # 4. Limpieza y Permisos
+                    # 3. Renombrado y permisos
+                    mv ZAP_${ZAP_VERSION} ZAP_CLI 
                     rm zap_core.tar.gz
                     chmod +x ZAP_CLI/zap.sh
                 """
@@ -69,7 +68,7 @@ pipeline {
                     pip-audit -r requirements.txt -f markdown -o security-reports/pip-audit.md || true
                 '''
                 
-                // 2. Ejecutar plugin OWASP Dependency-Check
+                // 2. Ejecutar plugin OWASP Dependency-Check (usando credencial nvdApiKey)
                 withCredentials([string(credentialsId: 'nvdApiKey', variable: 'NVD_API_KEY_SECRET')]) {
                     dependencyCheck additionalArguments: "--scan . --format HTML --out security-reports --enableExperimental --enableRetired --nvdApiKey ${NVD_API_KEY_SECRET} --disableOssIndex", odcInstallation: 'DependencyCheck'
                 }
@@ -79,6 +78,7 @@ pipeline {
         // --- 4. ANÁLISIS ESTÁTICO DE CÓDIGO (SAST) ---
         stage('SonarQube Analysis (SAST)') {
             steps {
+                // 1. Usar la credencial 'sonarQubeToken' para inyectar el secreto
                 withCredentials([string(credentialsId: 'sonarQubeToken', variable: 'SONAR_LOGIN_SECRET')]) { 
                     script {
                         def scannerHome = tool 'SonarQubeScanner'
@@ -113,9 +113,8 @@ pipeline {
         stage('OWASP ZAP Scan (DAST)') {
             steps {
                 echo "Ejecutando escaneo ZAP Baseline (Localmente) contra ${TARGET_URL}"
-                
-                // ⭐️ CORRECCIÓN FINAL: Cambiar -quickscan por -zapit ⭐️
-                sh "./ZAP_CLI/zap.sh -cmd -port 8090 -host 127.0.0.1 -zapit ${TARGET_URL} -quickout security-reports/zap-report.html || true"
+                // Ejecutamos ZAP con corrección de puerto (8090) y opción -quickurl
+                sh "./ZAP_CLI/zap.sh -cmd -port 8090 -host 127.0.0.1 -quickurl ${TARGET_URL} -quickout security-reports/zap-report.html || true"
                 
                 sh 'chmod -R 777 security-reports'
             }
