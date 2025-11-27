@@ -1,7 +1,18 @@
 pipeline {
-    agent any
+    agent any // Usamos 'agent any' para avanzar después de los errores de Docker
 
-    // --- 1. PREPARACIÓN Y CONSTRUCCIÓN ---
+    // ⭐️ AÑADIMOS EL BLOQUE ENVIRONMENT AQUÍ ⭐️
+    environment {
+        PROJECT_NAME = "pipeline-test"
+        SONARQUBE_URL = "http://sonarqube:9000"
+        TARGET_URL = "http://172.31.150.232:5000" // IP de la aplicación una vez desplegada
+        APP_PORT = 5000
+        APP_IMAGE = "python-app:${env.BUILD_ID}"
+    }
+    // ⭐️ AÑADIMOS EL BLOQUE STAGES AQUÍ ⭐️
+    stages { 
+
+        // --- 1. PREPARACIÓN Y CONSTRUCCIÓN ---
         stage('Setup & Build') {
             steps {
                 echo "Instalando dependencias y construyendo imagen..."
@@ -115,4 +126,5 @@ pipeline {
                 ])
             }
         }
-    }
+    } // ⭐️ CIERRA EL BLOQUE STAGES AQUÍ ⭐️
+} // CIERRA EL BLOQUE PIPELINE
