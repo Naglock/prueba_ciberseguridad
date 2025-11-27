@@ -37,16 +37,20 @@ pipeline {
             steps {
                 echo "Descargando e instalando ZAP Core (v${ZAP_VERSION})..."
                 sh """
-                    # ⭐️ CAMBIO CRÍTICO: Descargar ZAP Core (.tar.gz) ⭐️
+                    # 1. Limpieza preventiva de residuos
+                    rm -rf ZAP_CLI || true
+                    rm -rf ZAP_2.15.0 || true
+                    
+                    # 2. Descarga
                     wget https://github.com/zaproxy/zaproxy/releases/download/v${ZAP_VERSION}/ZAP_${ZAP_VERSION}_Linux.tar.gz -O zap_core.tar.gz
                     
-                    # Descomprime el archivo (tar.gz)
+                    # 3. Descompresión
                     tar -xzf zap_core.tar.gz
                     
-                    # Renombra el directorio para que coincida con la ruta de ejecución
-                    mv ZAP* ZAP_CLI
+                    # 4. ⭐️ RENOMBRADO SEGURO ⭐️: Renombra la carpeta que TAR creó (ej. ZAP_2.15.0) al nombre ZAP_CLI
+                    mv ZAP_${ZAP_VERSION} ZAP_CLI 
                     
-                    # Limpieza y Permisos
+                    # 5. Limpieza y Permisos
                     rm zap_core.tar.gz
                     chmod +x ZAP_CLI/zap.sh
                 """
