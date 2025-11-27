@@ -35,14 +35,19 @@ pipeline {
         // --- 2. INSTALAR ZAP CLI (Solución al Bloqueo de Docker Hub) ---
         stage('Install ZAP CLI') {
             steps {
-                echo "Descargando e instalando ZAP CLI (v${ZAP_VERSION})..."
+                echo "Descargando e instalando ZAP Core (v${ZAP_VERSION})..."
                 sh """
-                    # Descarga el ZIP y lo extrae
-                    wget https://github.com/zaproxy/zaproxy/releases/download/v${ZAP_VERSION}/ZAP_CLI-${ZAP_VERSION}.zip -O zap_cli.zip
-                    unzip zap_cli.zip
+                    # Usar la descarga del binario Linux/Unix de ZAP (ZAP_2.15.0_Linux.tar.gz)
+                    wget https://github.com/zaproxy/zaproxy/releases/download/v${ZAP_VERSION}/ZAP_${ZAP_VERSION}_Linux.tar.gz -O zap_core.tar.gz
                     
-                    # Permisos y Limpieza
-                    rm zap_cli.zip
+                    # Descomprime el archivo (tar.gz)
+                    tar -xzf zap_core.tar.gz
+                    
+                    # Renombra el directorio para simplificar
+                    mv ZAP* ZAP_CLI
+                    
+                    # Limpieza y Permisos
+                    rm zap_core.tar.gz
                     chmod +x ZAP_CLI/zap.sh
                 """
             }
