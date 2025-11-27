@@ -94,7 +94,7 @@ pipeline {
                 sh """
                     docker run --rm \\
                     -v \$(pwd)/security-reports:/zap/wrk \\
-                    owasp/zap2docker-weekly \\
+                    owasp/zap2docker-stable:2.15.0 \\
                     zap-baseline.py -t ${TARGET_URL} \\
                     -g /zap/wrk/zap-report.html -r /zap/wrk/zap-report.xml || true
                 """
