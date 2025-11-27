@@ -114,8 +114,8 @@ pipeline {
             steps {
                 echo "Ejecutando escaneo ZAP Baseline (Localmente) contra ${TARGET_URL}"
                 
-                // ⭐️ CORRECCIÓN CRÍTICA: Cambiar -target por -quickurl ⭐️
-                sh "./ZAP_CLI/zap.sh -cmd -port 8090 -host 127.0.0.1 -quickurl ${TARGET_URL} -quickscan -quickout security-reports/zap-report.html || true"
+                // ⭐️ CORRECCIÓN FINAL: Cambiar -quickscan por -zapit ⭐️
+                sh "./ZAP_CLI/zap.sh -cmd -port 8090 -host 127.0.0.1 -zapit ${TARGET_URL} -quickout security-reports/zap-report.html || true"
                 
                 sh 'chmod -R 777 security-reports'
             }
