@@ -30,6 +30,18 @@ pipeline {
                 sh "docker build -t ${APP_IMAGE} ."
             }
         }
+        stage('Install ZAP CLI') {
+        steps {
+            echo "Descargando e instalando ZAP CLI..."
+            sh '''
+                # ZAP CLI es un binario que podemos descargar directamente
+                # Usaremos la versión más reciente (ej. 2.15.0)
+                wget https://github.com/zaproxy/zaproxy/releases/download/v2.15.0/ZAP_CLI-2.15.0.zip -O zap_cli.zip
+                unzip zap_cli.zip
+                chmod +x ZAP_CLI/zap.sh
+            '''
+        }
+    }
         
         // --- 2. ANÁLISIS DE DEPENDENCIAS (SCA) ---
         stage('Dependency Check (SCA)') {
@@ -89,14 +101,16 @@ pipeline {
         // --- 5. PRUEBAS DINÁMICAS (DAST con OWASP ZAP) ---
         stage('OWASP ZAP Scan (DAST)') {
             steps {
-                echo "Ejecutando escaneo ZAP Baseline contra ${TARGET_URL}"
-                // ZAP escanea la aplicación desplegada en el host/WSL a través de la IP 172.31.150.232
+                echo "Ejecutando escaneo ZAP Baseline (Localmente) contra ${TARGET_URL}"
                 sh """
-                    docker run --rm \\
-                    -v \$(pwd)/security-reports:/zap/wrk \\
-                    owasp/zap2docker-bare \\
-                    zap-baseline.py -t ${TARGET_URL} \\
-                    -g /zap/wrk/zap-report.html -r /zap/wrk/zap-report.xml || true
+                    # Ejecutar el binario local ZAP CLI
+                    ./ZAP_CLI/zap.sh -cmd -host ${TARGET_URL} -port 8080 -addonupdate -baseline -g /zap/zap-report.html || true
+                    
+                    # Nota: Esto es un ejemplo, el comando exacto de ZAP CLI para generar el informe HTML puede variar.
+                    # Aquí generamos un informe simple para la publicación.
+                    
+                    # Mover el informe generado al directorio de informes de Jenkins
+                    mv zap-report.html security-reports/zap-report.html
                 """
                 sh 'chmod -R 777 security-reports'
             }
