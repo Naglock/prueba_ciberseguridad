@@ -98,6 +98,7 @@ pipeline {
                     zap-baseline.py -t ${TARGET_URL} \\
                     -g /zap/wrk/zap-report.html -r /zap/wrk/zap-report.xml || true
                 """
+                sh 'chmod -R 777 security-reports'
             }
         }
 
