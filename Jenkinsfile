@@ -18,7 +18,6 @@ pipeline {
                 echo "Instalando dependencias y construyendo imagen..."
                 sh '''
                     # 1. Instalar Python y herramientas necesarias
-                    apt update
                     DEBIAN_FRONTEND=noninteractive apt install -y python3 python3-venv python3-pip
 
                     # 2. Crear entorno virtual dentro del workspace
