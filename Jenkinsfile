@@ -75,6 +75,10 @@ pipeline {
         // --- 4. DESPLIEGUE TEMPORAL PARA DAST ---
         stage('Deploy for DAST') {
             steps {
+                echo "Limpiando contenedores antiguos antes de desplegar..."
+                // ⭐️ AÑADIR LIMPIEZA PREVIA AQUÍ ⭐️
+                sh 'docker stop deployed-app || true'
+                sh 'docker rm deployed-app || true'
                 echo "Desplegando la app en el puerto ${APP_PORT} para escaneo DAST..."
                 // Desplegar la app usando la imagen construida. La app y Jenkins están en la misma red.
                 sh "docker run -d --name deployed-app -p ${APP_PORT}:5000 --network jenkins-net ${APP_IMAGE}"
