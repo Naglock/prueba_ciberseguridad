@@ -95,15 +95,20 @@ pipeline {
         }
         
         // --- 5. DESPLIEGUE TEMPORAL PARA DAST ---
-        stage('Deploy for DAST') {
+        stage('OWASP ZAP Scan (DAST)') {
             steps {
-                echo "Limpiando contenedores antiguos antes de desplegar..."
-                sh 'docker stop deployed-app || true'
-                sh 'docker rm deployed-app || true'
-                
-                echo "Desplegando la app en el puerto ${APP_PORT} para escaneo DAST..."
-                sh "docker run -d --name deployed-app -p ${APP_PORT}:5000 --network jenkins-net ${APP_IMAGE}"
-                sleep 10 // Dar tiempo al servidor Python para iniciar
+                echo "Ejecutando escaneo ZAP Baseline (Localmente) contra ${TARGET_URL}"
+                sh """
+                    # ⭐️ COMANDO ÚNICO CORREGIDO: INCLUYE PUERTO Y REPORTE ⭐️
+                    ./ZAP_CLI/zap.sh -cmd \\
+                        -port 8090 \\  // ⭐️ Solución 1: Evita conflicto con Jenkins ⭐️
+                        -target ${TARGET_URL} \\
+                        -quickscan \\
+                        -quickout security-reports/zap-report.html || true  // ⭐️ Solución 2: Genera el HTML directamente ⭐️
+                """
+                // ⭐️ ELIMINAMOS el código del reporte que fallaba ⭐️
+                // El comando de mv y chmod debe estar fuera del bloque sh anterior.
+                sh 'chmod -R 777 security-reports'
             }
         }
 
