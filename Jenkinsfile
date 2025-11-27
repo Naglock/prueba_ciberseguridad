@@ -45,8 +45,8 @@ pipeline {
                 '''
                 
                 // 2. Ejecutar plugin OWASP Dependency-Check usando la credencial 'nvdApiKey'
-                withCredentials([string(credentialsId: 'nvdApiKey', variable: 'NVD_API_KEY_SECRET')]) {
-                    dependencyCheck additionalArguments: "--scan . --format HTML --out security-reports --enableExperimental --enableRetired --nvdApiKey ${NVD_API_KEY_SECRET}", odcInstallation: 'DependencyCheck'
+               withCredentials([string(credentialsId: 'nvdApiKey', variable: 'NVD_API_KEY_SECRET')]) {
+                    dependencyCheck additionalArguments: "--scan . --format HTML --out security-reports --enableExperimental --enableRetired --nvdApiKey ${NVD_API_KEY_SECRET} --disableOssIndex", odcInstallation: 'DependencyCheck' // ⭐️ AÑADIDO: --disableOssIndex
                 }
             }
         }
@@ -64,7 +64,7 @@ pipeline {
                                     -Dsonar.projectKey=$PROJECT_NAME \\
                                     -Dsonar.sources=. \\
                                     -Dsonar.host.url=$SONARQUBE_URL \\
-                                    -Dsonar.login=$SONAR_LOGIN_SECRET  // Usa la variable secreta inyectada
+                                    -Dsonar.login=$SONAR_LOGIN_SECRET 
                             """
                         }
                     }
