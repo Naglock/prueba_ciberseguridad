@@ -1,56 +1,49 @@
 pipeline {
-    agent any // Usamos 'agent any' para avanzar después de los errores de Docker
+    agent any // Usamos 'agent any' para evitar conflictos con Docker
 
     environment {
         PROJECT_NAME = "pipeline-test"
         SONARQUBE_URL = "http://sonarqube:9000"
-        TARGET_URL = "http://172.31.150.232:5000" // IP de la aplicación una vez desplegada
+        TARGET_URL = "http://172.31.150.232:5000" // IP de la aplicación desplegada
         APP_PORT = 5000
         APP_IMAGE = "python-app:${env.BUILD_ID}"
-        ZAP_VERSION = "2.15.0" // Definimos la versión de ZAP para simplificar
+        ZAP_VERSION = "2.15.0" // Versión de ZAP a descargar
     }
 
     stages { 
-
         // --- 1. PREPARACIÓN, INSTALACIÓN Y CONSTRUCCIÓN ---
         stage('Setup & Build') {
             steps {
                 echo "Instalando utilidades y construyendo imagen..."
                 sh '''
-                    # 1. Instalar herramientas críticas (wget, unzip) y Python
+                    # 1. Instalar herramientas críticas y Python
                     DEBIAN_FRONTEND=noninteractive apt update && \
                     DEBIAN_FRONTEND=noninteractive apt install -y wget unzip python3 python3-venv python3-pip
 
-                    # 2. Crear entorno virtual
+                    # 2. Crear entorno virtual y dependencias
                     python3 -m venv venv
                     . venv/bin/activate
                     pip install --upgrade pip
                     pip install -r requirements.txt
                 '''
-                // 3. Construir la imagen Docker de la aplicación para el despliegue
+                // 3. Construir la imagen Docker
                 sh "docker build -t ${APP_IMAGE} ."
             }
         }
         
-        // --- 2. INSTALAR ZAP CLI (Solución al Bloqueo de Docker Hub) ---
+        // --- 2. INSTALAR ZAP CLI (Localmente) ---
         stage('Install ZAP CLI') {
             steps {
                 echo "Descargando e instalando ZAP Core (v${ZAP_VERSION})..."
                 sh """
-                    # 1. Limpieza preventiva de residuos
-                    rm -rf ZAP_CLI || true
-                    rm -rf ZAP_2.15.0 || true
-                    
-                    # 2. Descarga
+                    # 1. Descargar el binario Linux/Unix de ZAP
                     wget https://github.com/zaproxy/zaproxy/releases/download/v${ZAP_VERSION}/ZAP_${ZAP_VERSION}_Linux.tar.gz -O zap_core.tar.gz
                     
-                    # 3. Descompresión
+                    # 2. Descompresión y renombrado
                     tar -xzf zap_core.tar.gz
+                    mv ZAP_${ZAP_VERSION} ZAP_CLI // Renombra el directorio generado por tar
                     
-                    # 4. ⭐️ RENOMBRADO SEGURO ⭐️: Renombra la carpeta que TAR creó (ej. ZAP_2.15.0) al nombre ZAP_CLI
-                    mv ZAP_${ZAP_VERSION} ZAP_CLI 
-                    
-                    # 5. Limpieza y Permisos
+                    # 3. Limpieza y Permisos
                     rm zap_core.tar.gz
                     chmod +x ZAP_CLI/zap.sh
                 """
@@ -80,7 +73,6 @@ pipeline {
         // --- 4. ANÁLISIS ESTÁTICO DE CÓDIGO (SAST) ---
         stage('SonarQube Analysis (SAST)') {
             steps {
-                // 1. Usar la credencial 'sonarQubeToken' para inyectar el secreto
                 withCredentials([string(credentialsId: 'sonarQubeToken', variable: 'SONAR_LOGIN_SECRET')]) { 
                     script {
                         def scannerHome = tool 'SonarQubeScanner'
@@ -106,7 +98,6 @@ pipeline {
                 sh 'docker rm deployed-app || true'
                 
                 echo "Desplegando la app en el puerto ${APP_PORT} para escaneo DAST..."
-                // Usamos el puerto ${APP_PORT} (ej. 8081) en el host, mapeado al puerto 5000 del contenedor
                 sh "docker run -d --name deployed-app -p ${APP_PORT}:5000 --network jenkins-net ${APP_IMAGE}"
                 sleep 10 // Dar tiempo al servidor Python para iniciar
             }
@@ -116,19 +107,15 @@ pipeline {
         stage('OWASP ZAP Scan (DAST)') {
             steps {
                 echo "Ejecutando escaneo ZAP Baseline (Localmente) contra ${TARGET_URL}"
-                
-                // Ejecutamos el ZAP CLI localmente con las correcciones:
+                // Ejecutamos ZAP con corrección de puerto y reporte fusionado
                 sh """
-                    # ⭐️ COMANDO ÚNICO CORREGIDO: Soluciona error de proxy (8090) y reporte (-quickout) ⭐️
                     ./ZAP_CLI/zap.sh -cmd \\
-                        -port 8090 \\ // ZAP usa 8090 para su proxy interno (evita conflicto con Jenkins:8080)
-                        -host 127.0.0.1 \\ // ZAP proxy corre localmente
+                        -port 8090 \\ // Evita conflicto con Jenkins (8080)
+                        -host 127.0.0.1 \\
                         -target ${TARGET_URL} \\
                         -quickscan \\
-                        -quickout security-reports/zap-report.html || true  // Genera el HTML directo
+                        -quickout security-reports/zap-report.html || true // Genera el reporte HTML directo
                 """
-                
-                // El comando 'mv' ya no es necesario porque -quickout escribe en la ruta correcta.
                 sh 'chmod -R 777 security-reports'
             }
         }
@@ -161,5 +148,5 @@ pipeline {
                 ])
             }
         }
-    } // CIERRA EL BLOQUE STAGES AQUÍ ⭐️
-} // CIERRA EL BLOQUE PIPELINE
+    } // Cierra el bloque stages
+} // Cierra el bloque pipeline
