@@ -115,11 +115,11 @@ pipeline {
                 echo "Ejecutando escaneo ZAP Baseline (Localmente) contra ${TARGET_URL}"
                 
                 sh """
-                    # 1. Ejecutar el escaneo (escribe en la raíz del directorio ZAP_CLI)
-                    ./ZAP_CLI/zap.sh -cmd -port 8090 -host 127.0.0.1 -quickurl ${TARGET_URL} -quickout zap-report.html || true
+                    # ⭐️ CORRECCIÓN CRÍTICA: Usar una ruta de salida explícita y absoluta ⭐️
+                    ./ZAP_CLI/zap.sh -cmd -port 8090 -host 127.0.0.1 -quickurl ${TARGET_URL} -quickout zap_temp_report.html || true
 
-                    # 2. Mover el informe al directorio final de Jenkins
-                    mv zap-report.html security-reports/zap-report.html || true 
+                    # Mover el informe temporal al directorio final
+                    mv zap_temp_report.html security-reports/zap-report.html || true
                 """
                 sh 'chmod -R 777 security-reports'
             }
