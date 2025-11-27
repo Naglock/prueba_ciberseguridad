@@ -95,20 +95,16 @@ pipeline {
         }
         
         // --- 5. DESPLIEGUE TEMPORAL PARA DAST ---
-        stage('OWASP ZAP Scan (DAST)') {
+        stage('Deploy for DAST') {
             steps {
-                echo "Ejecutando escaneo ZAP Baseline (Localmente) contra ${TARGET_URL}"
-                sh """
-                    # ⭐️ COMANDO ÚNICO CORREGIDO: INCLUYE PUERTO Y REPORTE ⭐️
-                    ./ZAP_CLI/zap.sh -cmd \\
-                        -port 8090 \\  // ⭐️ Solución 1: Evita conflicto con Jenkins ⭐️
-                        -target ${TARGET_URL} \\
-                        -quickscan \\
-                        -quickout security-reports/zap-report.html || true  // ⭐️ Solución 2: Genera el HTML directamente ⭐️
-                """
-                // ⭐️ ELIMINAMOS el código del reporte que fallaba ⭐️
-                // El comando de mv y chmod debe estar fuera del bloque sh anterior.
-                sh 'chmod -R 777 security-reports'
+                echo "Limpiando contenedores antiguos antes de desplegar..."
+                sh 'docker stop deployed-app || true'
+                sh 'docker rm deployed-app || true'
+                
+                echo "Desplegando la app en el puerto ${APP_PORT} para escaneo DAST..."
+                // Usamos el puerto ${APP_PORT} (ej. 8081) en el host, mapeado al puerto 5000 del contenedor
+                sh "docker run -d --name deployed-app -p ${APP_PORT}:5000 --network jenkins-net ${APP_IMAGE}"
+                sleep 10 // Dar tiempo al servidor Python para iniciar
             }
         }
 
@@ -116,16 +112,19 @@ pipeline {
         stage('OWASP ZAP Scan (DAST)') {
             steps {
                 echo "Ejecutando escaneo ZAP Baseline (Localmente) contra ${TARGET_URL}"
+                
+                // Ejecutamos el ZAP CLI localmente con las correcciones:
                 sh """
-                    # Ejecutar el binario local ZAP CLI y generar el informe
-                    ./ZAP_CLI/zap.sh -cmd -target ${TARGET_URL} -T 30 -quickscan -addoninstall pscanrules -addonupdate || true
-                    
-                    # Generar el informe HTML (comando específico de ZAP CLI)
-                    ./ZAP_CLI/zap.sh -cmd -report -format html -template traditional -output zap-report-raw.html || true
-                    
-                    # Mover el informe generado al directorio de informes de Jenkins
-                    mv zap-report-raw.html security-reports/zap-report.html
+                    # ⭐️ COMANDO ÚNICO CORREGIDO: Soluciona error de proxy (8090) y reporte (-quickout) ⭐️
+                    ./ZAP_CLI/zap.sh -cmd \\
+                        -port 8090 \\ // ZAP usa 8090 para su proxy interno (evita conflicto con Jenkins:8080)
+                        -host 127.0.0.1 \\ // ZAP proxy corre localmente
+                        -target ${TARGET_URL} \\
+                        -quickscan \\
+                        -quickout security-reports/zap-report.html || true  // Genera el HTML directo
                 """
+                
+                // El comando 'mv' ya no es necesario porque -quickout escribe en la ruta correcta.
                 sh 'chmod -R 777 security-reports'
             }
         }
